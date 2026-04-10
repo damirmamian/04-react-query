@@ -2,7 +2,7 @@ import SearchBar from "../SearchBar/SearchBar";
 import css from "./App.module.css";
 import fetchMovies from "../../services/movieService";
 import { toast, Toaster } from 'react-hot-toast';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Movie } from "../../types/movie";
 import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
@@ -15,10 +15,11 @@ import Pagination from "../Pagination/Pagination";
 
 export default function App() {
 
-  const [movies, setMovies] = useState<Movie[]>([])
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [page, setPage] = useState(1);
   const [topic, setTopic] = useState('');
+
+
 
   const { data, isLoading, isError, isSuccess } = useQuery({
     queryKey: ['movie', topic, page],
@@ -27,31 +28,24 @@ export default function App() {
     placeholderData: keepPreviousData,
   });
   const totalPages = data?.total_pages ?? 0
-  const totalMovies = data?.results ?? []
 
-
-  const handleSearch = async (topic: string) => {
+  const handleSearch = (topic: string) => {
     setTopic(topic)
-    setMovies([])
     setPage(1)
-
-
-    try {
-      const data = await fetchMovies(topic, page)
-
-      if (topic == "") {
-        toast.error("Please enter your search query.")
-      } else if (data.results.length === 0) {
-        toast.error("No movies found for your request.")
-        return
-      }
-
-      setMovies(totalMovies)
-    } catch (error) {
-      toast.error("An error occurred. Please try again.");
-      console.log(error);
-    }
   }
+
+  useEffect(() => {
+    if (isSuccess && data?.results?.length === 0 && topic !== "") {
+      toast.error("No movies found for your request.");
+    }
+  }, [data, isSuccess, topic]);
+
+  const openMovieModal = (movie: Movie) => {
+    setSelectedMovie(movie);
+  }
+  const closeMovieModal = () => {
+    setSelectedMovie(null);
+  };
 
   return (<div className={css.app}>
     <Toaster
@@ -61,9 +55,9 @@ export default function App() {
     <SearchBar onSubmit={handleSearch} />
     {isLoading && <Loader />}
     {isError && <ErrorMessage />}
-    {isSuccess && totalPages > 1 && <Pagination totalPages={totalPages} page={page} onPageChange={setPage} />}
-    {movies.length > 0 && <MovieGrid movies={totalMovies} onSelect={setSelectedMovie} />}
-    {selectedMovie && <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}
+    {isSuccess && totalPages > 1 && <Pagination pageCount={totalPages} forcePage={page} onPageChange={setPage} />}
+    {data && data?.results.length > 0 && <MovieGrid movies={data.results} onSelect={openMovieModal} />}
+    {selectedMovie && <MovieModal movie={selectedMovie} onClose={closeMovieModal} />}
   </div>)
 }
 
