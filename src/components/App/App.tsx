@@ -60,4 +60,3 @@ export default function App() {
     {selectedMovie && <MovieModal movie={selectedMovie} onClose={closeMovieModal} />}
   </div>)
 }
-
