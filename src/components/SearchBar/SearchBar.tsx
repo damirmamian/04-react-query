@@ -8,10 +8,6 @@ export default function SearchBar({ onSubmit }: SearchBarProps) {
 
     const handleSubmit = (formData: FormData) => {
         const query = formData.get("query") as string;
-        if (query === "") {
-            alert("Please enter search topic!");
-            return;
-        }
         onSubmit(query);
     };
 

@@ -29,8 +29,7 @@ export default function App() {
 
       if (topic == "") {
         toast.error("Please enter your search query.")
-      }
-      if (data.results.length === 0) {
+      } else if (data.results.length === 0) {
         toast.error("No movies found for your request.")
         return
       }
