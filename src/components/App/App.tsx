@@ -8,24 +8,36 @@ import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
 import Loader from "../Loader/Loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import Pagination from "../Pagination/Pagination";
+
+
 
 export default function App() {
 
   const [movies, setMovies] = useState<Movie[]>([])
-  const [loader, setLoader] = useState(false)
-  const [error, setError] = useState(false)
-
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [page, setPage] = useState(1);
+  const [topic, setTopic] = useState('');
+
+  const { data, isLoading, isError, isSuccess } = useQuery({
+    queryKey: ['movie', topic, page],
+    queryFn: () => fetchMovies(topic, page),
+    enabled: topic !== '',
+    placeholderData: keepPreviousData,
+  });
+  const totalPages = data?.total_pages ?? 0
+  const totalMovies = data?.results ?? []
+
 
   const handleSearch = async (topic: string) => {
-
+    setTopic(topic)
     setMovies([])
-    setLoader(true)
-    setError(false)
+    setPage(1)
 
 
     try {
-      const data = await fetchMovies(topic)
+      const data = await fetchMovies(topic, page)
 
       if (topic == "") {
         toast.error("Please enter your search query.")
@@ -34,31 +46,23 @@ export default function App() {
         return
       }
 
-      setMovies(data.results)
-      console.log(movies)
-
+      setMovies(totalMovies)
     } catch (error) {
-      setError(true)
       toast.error("An error occurred. Please try again.");
-
-    } finally {
-      setLoader(false)
-
+      console.log(error);
     }
   }
-
 
   return (<div className={css.app}>
     <Toaster
       position="top-center"
       reverseOrder={true}
     />
-
     <SearchBar onSubmit={handleSearch} />
-    {loader && <Loader />}
-    {error && <ErrorMessage />}
-
-    {movies.length > 0 && <MovieGrid movies={movies} onSelect={setSelectedMovie} />}
+    {isLoading && <Loader />}
+    {isError && <ErrorMessage />}
+    {isSuccess && totalPages > 1 && <Pagination totalPages={totalPages} page={page} onPageChange={setPage} />}
+    {movies.length > 0 && <MovieGrid movies={totalMovies} onSelect={setSelectedMovie} />}
     {selectedMovie && <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}
   </div>)
 }
